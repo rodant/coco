@@ -19,6 +19,7 @@
     }
   },
   "dependencies": {
+    "@nostr-dev-kit/ndk": "^2.14.33"
   },
   "scripts": {
     "build": "tsdown"

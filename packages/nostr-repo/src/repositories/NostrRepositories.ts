@@ -12,6 +12,7 @@ import { MemoryKeysetRepository, MemoryMeltQuoteRepository, MemoryMintQuoteRepos
 import { NostrCounterRepository } from './NostrCounterRepository';
 import { NostrProofRepository } from './NostrProofRepository';
 import { NostrHistoryRepository } from './NostrHistoryRepository';
+import NDK from '@nostr-dev-kit/ndk';
 
 export class NostrRepositories implements Repositories {
   mintRepository: MintRepository;
@@ -22,11 +23,11 @@ export class NostrRepositories implements Repositories {
   meltQuoteRepository: MeltQuoteRepository;
   historyRepository: HistoryRepository;
 
-  constructor() {
+  constructor(ndk: NDK) {
     this.mintRepository = new MemoryMintRepository();
     this.counterRepository = new NostrCounterRepository();
     this.keysetRepository = new MemoryKeysetRepository();
-    this.proofRepository = new NostrProofRepository();
+    this.proofRepository = new NostrProofRepository(ndk);
     this.mintQuoteRepository = new MemoryMintQuoteRepository();
     this.meltQuoteRepository = new MemoryMeltQuoteRepository();
     this.historyRepository = new NostrHistoryRepository();
