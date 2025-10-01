@@ -1,0 +1,30 @@
+{
+  "name": "coco-cashu-nostr-repo",
+  "version": "0.0.1",
+  "module": "index.ts",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest",
+    "tsdown": "^0.14.1"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+  },
+  "scripts": {
+    "build": "tsdown"
+  },
+  "peerDependencies": {
+    "typescript": "^5",
+    "coco-cashu-core": "workspace:^"
+  }
+}
