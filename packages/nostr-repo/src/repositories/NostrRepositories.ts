@@ -23,9 +23,9 @@ export class NostrRepositories implements Repositories {
   meltQuoteRepository: MeltQuoteRepository;
   historyRepository: HistoryRepository;
 
-  constructor(ndk: NDK) {
+  constructor(ndk: NDK, seedHex: string) {
     this.mintRepository = new MemoryMintRepository();
-    this.counterRepository = new NostrCounterRepository();
+    this.counterRepository = new NostrCounterRepository(ndk, seedHex);
     this.keysetRepository = new MemoryKeysetRepository();
     this.proofRepository = new NostrProofRepository(ndk);
     this.mintQuoteRepository = new MemoryMintQuoteRepository();

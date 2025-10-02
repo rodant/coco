@@ -5,6 +5,9 @@ import { Database } from 'sqlite3';
 import { getEncodedToken } from '@cashu/cashu-ts';
 import * as bip39 from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english';
+import { bytesToHex } from '@noble/hashes/utils';
+import { NostrRepositories } from 'coco-cashu-nostr-repo';
+import NDK, { NDKPrivateKeySigner } from '@nostr-dev-kit/ndk';
 
 const db = new Database('./test.db');
 
@@ -29,10 +32,25 @@ if (!cachedKey) {
   cachedKey = newKey;
 }
 const seedGetter = async () => bip39.mnemonicToSeedSync(cachedKey);
+const seed = await seedGetter();
+const seedHex = bytesToHex(seed);
+
+const userNsec = "nsec12ym7e30344nd6208v2zjv49h4vtakv7npg7uaqrl58sxz6uneyysa848d5";// Testr2
+const signer = new NDKPrivateKeySigner(userNsec);
+const ndk = new NDK({
+  signer,
+  explicitRelayUrls: ["wss://relay.cypherflow.ai/", "wss://nostr.einundzwanzig.space", "wss://nos.lol", "wss://sendit.nosflare.com/"]
+});
+
+await ndk.connect();
+const user = ndk.activeUser;
+console.log(`*** Wallet of user: ${user?.profile?.displayName}, npub: ${user?.npub}, seed: ${seedHex}`);
 
 const repo = new SqliteRepositories({ database: db });
 await repo.init();
-const manager = new Manager(repo, seedGetter, new ConsoleLogger(undefined, { level: 'debug' }));
+
+const nostrRepo = new NostrRepositories(ndk, seedHex);
+const manager = new Manager(nostrRepo, seedGetter, new ConsoleLogger(undefined, { level: 'debug' }));
 
 program
   .command('balance')

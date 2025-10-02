@@ -4,8 +4,11 @@
   "type": "module",
   "private": true,
   "dependencies": {
+    "@noble/hashes": "^1.7.2",
     "coco-cashu-core": "workspace:*",
     "coco-cashu-sqlite3": "workspace:*",
+    "coco-cashu-nostr-repo": "workspace:^",
+    "@nostr-dev-kit/ndk": "2.14.37",
     "commander": "^14.0.0",
     "sqlite3": "^5.1.7"
   },

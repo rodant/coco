@@ -11,15 +11,11 @@ type Nip60Proof = {
   amount: number;
   C: string;
   id: string;
-  // other optional fields from cashu-ts Proof may exist (e.g., dleq), we allow passthrough via index signature
-  [k: string]: unknown;
 };
 
 type Nip60TokenDelta = {
-  token: Array<{
-    mint: string;
-    proofs: Nip60Proof[];
-  }>;
+  mint: string;
+  proofs: Nip60Proof[];
   del?: string[];
 };
 
@@ -75,12 +71,8 @@ export class NostrProofRepository implements ProofRepository {
 
       // Build and publish NIP-60 token delta with additions only
       const delta: Nip60TokenDelta = {
-        token: [
-          {
-            mint: normalizedMint,
-            proofs: proofs.map(this.toNip60Proof),
-          },
-        ],
+        mint: normalizedMint,
+        proofs: proofs.map(this.toNip60Proof),
       };
 
       await this.publishTokenDelta(delta);
@@ -108,6 +100,7 @@ export class NostrProofRepository implements ProofRepository {
   async getAllReadyProofs(): Promise<CoreProof[]> {
     await this.ensureHydrated();
     const all: CoreProof[] = [];
+    console.log("All Proofs -> \n", this.proofsByMint);
     for (const map of this.proofsByMint.values()) {
       for (const p of map.values()) {
         if (p.state === "ready") {
@@ -149,12 +142,8 @@ export class NostrProofRepository implements ProofRepository {
         if (!existing.length) return;
 
         const delta: Nip60TokenDelta = {
-          token: [
-            {
-              mint: normalizedMint,
-              proofs: [], // no additions
-            },
-          ],
+          mint: normalizedMint,
+          proofs: [], // no additions
           del: existing,
         };
 
@@ -190,12 +179,8 @@ export class NostrProofRepository implements ProofRepository {
       if (!existing.length) return;
 
       const delta: Nip60TokenDelta = {
-        token: [
-          {
-            mint: normalizedMint,
-            proofs: [], // no additions
-          },
-        ],
+        mint: normalizedMint,
+        proofs: [], // no additions
         del: existing,
       };
 
@@ -220,12 +205,8 @@ export class NostrProofRepository implements ProofRepository {
       if (!del.length) return;
 
       const delta: Nip60TokenDelta = {
-        token: [
-          {
-            mint: normalizedMint,
-            proofs: [],
-          },
-        ],
+        mint: normalizedMint,
+        proofs: [],
         del,
       };
 
@@ -265,22 +246,20 @@ export class NostrProofRepository implements ProofRepository {
     for (const ev of ordered) {
       const payload = await this.parseNip60TokenDelta(ev);
       if (!payload) continue;
-
-      for (const entry of payload.token) {
-        const normalizedMint = normalizeMintUrl(entry.mint);
-        const map = this.getMintMap(normalizedMint);
+      
+      const normalizedMint = normalizeMintUrl(payload.mint);
+      const map = this.getMintMap(normalizedMint);
+      for (const proof of payload.proofs) {
 
         // Apply additions (mark as ready)
-        for (const proof of entry.proofs) {
-          // id/amount/secret/C, others passthrough
-          const stored: StoredProof = {
-            ...(proof as unknown as StoredProof),
-            mintUrl: normalizedMint,
-            state: "ready",
-          };
-          map.set(proof.secret, stored);
-        }
-
+        // id/amount/secret/C, others passthrough
+        const stored: StoredProof = {
+          ...(proof as unknown as StoredProof),
+          mintUrl: normalizedMint,
+          state: "ready",
+        };
+        map.set(proof.secret, stored);
+        
         // Apply deletions (spent)
         const dels = payload.del || [];
         for (const s of dels) {
@@ -306,12 +285,19 @@ export class NostrProofRepository implements ProofRepository {
   }
 
   private async parseNip60TokenDelta(ev: NDKEvent): Promise<Nip60TokenDelta | null> {
-    await ev.decrypt();
+    try {
+      await ev.decrypt();
+    } catch {
+      console.log("Couldn't decrypt token event: \n", ev);
+      return null;
+    }
+
     try {
       const parsed = JSON.parse(ev.content) as Nip60TokenDelta;
-      if (!parsed?.token?.length) return null;
+      if (!parsed.proofs) return null;
       return parsed;
     } catch {
+      console.log("Couldn't parse content of token event: \n", ev.content);
       return null;
     }
   }

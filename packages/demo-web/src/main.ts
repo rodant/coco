@@ -3,6 +3,9 @@ import './style.css';
 import { ConsoleLogger, getDecodedToken, getEncodedToken, Manager } from 'coco-cashu-core';
 import * as bip39 from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english';
+import { bytesToHex } from '@noble/hashes/utils';
+import NDK, { NDKPrivateKeySigner } from '@nostr-dev-kit/ndk';
+import { NostrRepositories } from 'coco-cashu-nostr-repo';
 
 declare global {
   interface Window {
@@ -22,7 +25,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
 `;
 
-let seed: Uint8Array | undefined;
+let seed: Uint8Array;
 const cachedMnemonic = localStorage.getItem('coco-mnemonic');
 if (!cachedMnemonic) {
   const newMnemonic = bip39.generateMnemonic(wordlist);
@@ -44,5 +47,18 @@ window.getMnemonic = () => {
 const repo = new IndexedDbRepositories({});
 await repo.init();
 
-window.coco = new Manager(repo, async () => seed, new ConsoleLogger(undefined, { level: 'debug' }));
+const seedHex = bytesToHex(seed);
+const userNsec = "nsec12ym7e30344nd6208v2zjv49h4vtakv7npg7uaqrl58sxz6uneyysa848d5";// Testr2
+const signer = new NDKPrivateKeySigner(userNsec);
+const ndk = new NDK({
+  signer,
+  explicitRelayUrls: ["wss://relay.cypherflow.ai/", "wss://nostr.einundzwanzig.space", "wss://nos.lol", "wss://sendit.nosflare.com/"]
+});
+
+await ndk.connect();
+const user = ndk.activeUser;
+console.log(`*** Wallet of user: ${user?.profile?.displayName}, npub: ${user?.npub}, seed: ${seedHex}`);
+const nostrRepo = new NostrRepositories(ndk, seedHex);
+
+window.coco = new Manager(nostrRepo, async () => seed, new ConsoleLogger(undefined, { level: 'debug' }));
 window.cocoUtils = { getEncodedToken, getDecodedToken };
